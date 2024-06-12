@@ -3,6 +3,8 @@ import { TursoAdapter } from "../src/index.js";
 import { runBasicTests, TestOptions } from "./testSuite.js";
 import { createClient } from "@libsql/client";
 
+import { transformToObjects, transformISOToDate } from "../src/utils.js";
+
 const tursoClient = createClient({
   url: process.env.VITE_TURSO_DATABASE_URL as string,
   authToken: process.env.VITE_TURSO_AUTH_TOKEN,
@@ -32,27 +34,30 @@ const options: TestOptions = {
   adapter,
   db: {
     session: (sessionToken: string) => {
-      return;
-    },
-    user: async (id: string) => {
-      const res = await tursoClient
+      const session = tursoClient
         .execute({
-          sql: "SELECT * FROM User WHERE id = ? ",
+          sql: `
+        SELECT * FROM Session
+        WHERE sessionToken = ? 
+        LIMIT 1
+        `,
+          args: [sessionToken],
+        })
+        .then(transformToObjects)
+        .then(([res]) => transformISOToDate(res, "expires"));
+
+      return session;
+    },
+    user: (id: string) => {
+      const userRes = tursoClient
+        .execute({
+          sql: "SELECT * FROM User WHERE id = ?",
           args: [id],
         })
-        .then((val) => {
-          const [userRes] = val.rows as any;
+        .then(transformToObjects)
+        .then(([res]) => res);
 
-          if (userRes?.emailVerified !== null) {
-            userRes.emailVerified = new Date(
-              userRes["emailVerified"] as string
-            );
-          }
-
-          return userRes;
-        });
-
-      return res;
+      return userRes;
     },
     account: (providerAccountId: {
       provider: string;

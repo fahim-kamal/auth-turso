@@ -13,9 +13,12 @@ function zip(arr1: string[], arr2: Row): Record<string, InValue> {
 function transformResult(result: any, key: string, callback: Function): any {
   const transformed = result;
 
-  if (!result?.[key]) {
-    transformed[key] = callback(transformed[key]);
-  } else transformed[key] = null;
+  if (result?.[key] == false) {
+    transformed[key] = null;
+  } else {
+    transformed[key] = callback(result[key]);
+  }
+
   return transformed;
 }
 
@@ -26,21 +29,17 @@ function transformToObjects(result: ResultSet): any[] {
     return zip(columns, row);
   };
 
-  return rows.length ? rows.map(zipRow) : [null];
+  return rows.length != 0 ? rows.map(zipRow) : [null];
 }
 
-function transformVerifiedToISO(result: any) {
-  return transformResult(result, "emailVerified", (val: Date) =>
-    val.toISOString()
-  );
+function transformDateToISO(result: any, key: string) {
+  return transformResult(result, key, (val: Date) => val.toISOString());
 }
 
-function transformISOToDate(result: any) {
-  return transformResult(result, "emailVerified", (val: string | null) => {
-    if (val !== null) {
-      return new Date(val);
-    } else return null;
+function transformISOToDate(result: any, key: string) {
+  return transformResult(result, key, (val: string) => {
+    return new Date(val);
   });
 }
 
-export { zip, transformVerifiedToISO, transformToObjects, transformISOToDate };
+export { zip, transformDateToISO, transformToObjects, transformISOToDate };

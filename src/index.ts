@@ -5,18 +5,20 @@ import type {
   Adapter,
 } from "@auth/core/adapters";
 
-import type { Client, InValue } from "@libsql/client";
+import type { Client } from "@libsql/client";
+
+import { v4 as uuidv4 } from "uuid";
 
 import {
   transformISOToDate,
   transformToObjects,
-  transformVerifiedToISO,
+  transformDateToISO,
 } from "./utils.js";
 
 export function TursoAdapter(turso: Client): Adapter {
   return {
     createUser: (user: AdapterUser) => {
-      const userArg = transformVerifiedToISO(user);
+      const userArg = transformDateToISO(user, "emailVerified");
 
       const userRes = turso
         .execute({
@@ -58,7 +60,7 @@ export function TursoAdapter(turso: Client): Adapter {
           args: [email],
         })
         .then(transformToObjects)
-        .then(([res]) => (res !== null ? transformISOToDate(res) : null));
+        .then(([res]) => res);
 
       return user;
     },
@@ -77,7 +79,23 @@ export function TursoAdapter(turso: Client): Adapter {
       sessionToken: string;
       userId: string;
       expires: Date;
-    }) => {},
+    }) => {
+      const args = transformDateToISO({ ...session, id: uuidv4() }, "expires");
+
+      const sessionRes = turso
+        .execute({
+          sql: `
+        INSERT INTO Session (id, expires, sessionToken, userId)
+        VALUES (:id, :expires, :sessionToken, :userId)
+        RETURNING *
+        `,
+          args,
+        })
+        .then(transformToObjects)
+        .then(([res]) => res);
+
+      return sessionRes;
+    },
     getSessionAndUser: (sessionToken: string) => {},
     updateSession: (
       session: Partial<AdapterSession> & Pick<AdapterSession, "sessionToken">
