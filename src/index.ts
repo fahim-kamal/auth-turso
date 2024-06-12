@@ -230,7 +230,6 @@ export function TursoAdapter(turso: Client): Adapter {
 
       return updatedSession;
     },
-
     deleteSession: (sessionToken: string) => {
       const deletedSession = turso
         .execute({
@@ -246,7 +245,6 @@ export function TursoAdapter(turso: Client): Adapter {
 
       return deletedSession;
     },
-
     createVerificationToken: (verificationToken: VerificationToken) => {
       const tokenArg = transformDateToISO(verificationToken, "expires");
 
@@ -264,7 +262,6 @@ export function TursoAdapter(turso: Client): Adapter {
 
       return token;
     },
-
     useVerificationToken: (params: { identifier: string; token: string }) => {
       const usedToken = turso
         .execute({
@@ -279,6 +276,41 @@ export function TursoAdapter(turso: Client): Adapter {
         .then(([res]) => res);
 
       return usedToken;
+    },
+    unlinkAccount: (
+      providerAccountId: Pick<AdapterAccount, "provider" | "providerAccountId">
+    ) => {
+      const unlinkedAccount = turso
+        .execute({
+          sql: `
+        DELETE FROM Account
+        WHERE provider = ? AND providerAccountId = ?
+        RETURNING *
+        `,
+          args: [
+            providerAccountId.provider,
+            providerAccountId.providerAccountId,
+          ],
+        })
+        .then(transformToObjects)
+        .then(([res]) => res);
+
+      return unlinkedAccount;
+    },
+    deleteUser: (userId: string) => {
+      const deletedUser = turso
+        .execute({
+          sql: `
+        DELETE FROM User
+        WHERE id = ?
+        RETURNING *
+        `,
+          args: [userId],
+        })
+        .then(transformToObjects)
+        .then(([res]) => res);
+
+      return deletedUser;
     },
   };
 }
