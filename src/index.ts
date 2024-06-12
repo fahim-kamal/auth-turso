@@ -266,7 +266,19 @@ export function TursoAdapter(turso: Client): Adapter {
     },
 
     useVerificationToken: (params: { identifier: string; token: string }) => {
-      return;
+      const usedToken = turso
+        .execute({
+          sql: `
+        DELETE FROM VerificationToken
+        WHERE identifier = ? AND token = ? 
+        RETURNING *
+        `,
+          args: [params.identifier, params.token],
+        })
+        .then(transformToObjects)
+        .then(([res]) => res);
+
+      return usedToken;
     },
   };
 }
