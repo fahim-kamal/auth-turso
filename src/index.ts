@@ -68,7 +68,23 @@ export function TursoAdapter(turso: Client): Adapter {
     getUserByAccount: (
       providerAccountId: Pick<AdapterAccount, "provider" | "providerAccountId">
     ) => {
-      return;
+      const userByAccount = turso
+        .execute({
+          sql: `
+        SELECT User.id, name, email, emailVerified, image
+        FROM Account 
+        INNER JOIN User ON Account.userId = User.id
+        WHERE provider = ? AND providerAccountId = ? 
+        `,
+          args: [
+            providerAccountId.provider,
+            providerAccountId.providerAccountId,
+          ],
+        })
+        .then(transformToObjects)
+        .then(([res]) => res);
+
+      return userByAccount;
     },
     updateUser: (user: Partial<AdapterUser> & Pick<AdapterUser, "id">) => {
       const updateString = generateUpdatePlaceholders(user, ["id"]);
