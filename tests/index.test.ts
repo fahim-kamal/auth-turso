@@ -63,7 +63,23 @@ const options: TestOptions = {
       provider: string;
       providerAccountId: string;
     }) => {
-      return;
+      const accountRes = tursoClient
+        .execute({
+          sql: `
+        SELECT * 
+        FROM Account 
+        WHERE provider = ? AND providerAccountId = ? 
+        LIMIT 1
+        `,
+          args: [
+            providerAccountId.provider,
+            providerAccountId.providerAccountId,
+          ],
+        })
+        .then(transformToObjects)
+        .then(([res]) => res);
+
+      return accountRes;
     },
     verificationToken: (params: { identifier: string; token: string }) => {
       return;

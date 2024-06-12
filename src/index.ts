@@ -93,7 +93,30 @@ export function TursoAdapter(turso: Client): Adapter {
       return updatedUser;
     },
     linkAccount: (account: AdapterAccount) => {
-      return;
+      const accountArg = { ...account, id: uuidv4() };
+
+      const linkedAccount = turso
+        .execute({
+          sql: `
+        INSERT INTO Account
+        (id, userId, type, 
+         provider, providerAccountId, 
+         refresh_token, access_token, 
+         expires_at, token_type, scope,
+         id_token, session_state)
+        VALUES (:id, :userId, :type, 
+         :provider, :providerAccountId, 
+         :refresh_token, :access_token, 
+         :expires_at, :token_type, :scope,
+         :id_token, :session_state)
+         RETURNING * 
+        `,
+          args: accountArg,
+        })
+        .then(transformToObjects)
+        .then(([res]) => res);
+
+      return linkedAccount;
     },
     createSession: (session: {
       sessionToken: string;
