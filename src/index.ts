@@ -71,8 +71,11 @@ export function TursoAdapter(turso: Client): Adapter {
       return;
     },
     updateUser: (user: Partial<AdapterUser> & Pick<AdapterUser, "id">) => {
-      // creates SQL placeholder string which depends on the properties supplied
       const updateString = generateUpdatePlaceholders(user, ["id"]);
+
+      if (user?.emailVerified) {
+        user = transformDateToISO(user, "emailVerified");
+      }
 
       const updatedUser = turso
         .execute({
@@ -159,7 +162,35 @@ export function TursoAdapter(turso: Client): Adapter {
     },
     updateSession: (
       session: Partial<AdapterSession> & Pick<AdapterSession, "sessionToken">
-    ) => {},
+    ) => {
+      const updateString = generateUpdatePlaceholders(session, [
+        "sessionToken",
+      ]);
+
+      if (session?.expires) {
+        session = transformDateToISO(session, "expires");
+      }
+
+      const updatedSession = turso
+        .execute({
+          sql: `
+        UPDATE Session 
+        SET ${updateString}
+        WHERE sessionToken = :sessionToken
+        RETURNING *
+        `,
+          args: session,
+        })
+        .then(transformToObjects)
+        .then(([res]) => {
+          if (res == null) return null;
+
+          return transformISOToDate(res, "expires");
+        });
+
+      return updatedSession;
+    },
+
     deleteSession: (sessionToken: string) => {},
   };
 }
