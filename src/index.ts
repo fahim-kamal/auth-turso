@@ -230,6 +230,20 @@ export function TursoAdapter(turso: Client): Adapter {
       return updatedSession;
     },
 
-    deleteSession: (sessionToken: string) => {},
+    deleteSession: (sessionToken: string) => {
+      const deletedSession = turso
+        .execute({
+          sql: `
+        DELETE FROM Session 
+        WHERE sessionToken = ? 
+        RETURNING *
+        `,
+          args: [sessionToken],
+        })
+        .then(transformToObjects)
+        .then((res) => res);
+
+      return deletedSession;
+    },
   };
 }

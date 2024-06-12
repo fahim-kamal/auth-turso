@@ -44,7 +44,11 @@ const options: TestOptions = {
           args: [sessionToken],
         })
         .then(transformToObjects)
-        .then(([res]) => transformISOToDate(res, "expires"));
+        .then(([res]) => {
+          if (res == null) return null;
+
+          return transformISOToDate(res, "expires");
+        });
 
       return session;
     },
