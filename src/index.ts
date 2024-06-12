@@ -6,7 +6,7 @@ import type {
   VerificationToken,
 } from "@auth/core/adapters";
 
-import type { Client } from "@libsql/client";
+import type { Client, InStatement } from "@libsql/client";
 
 import { v4 as uuidv4 } from "uuid";
 
@@ -18,72 +18,64 @@ import {
 } from "./utils.js";
 
 export function TursoAdapter(turso: Client): Adapter {
+  const query = async (stmt: InStatement) => {
+    return turso
+      .execute(stmt)
+      .then(transformToObjects)
+      .then(([res]) => res);
+  };
+
   return {
     createUser: (user: AdapterUser) => {
       const userArg = transformDateToISO(user, "emailVerified");
 
-      const userRes = turso
-        .execute({
-          sql: `
+      const userRes = query({
+        sql: `
         INSERT INTO User (id, name, email, emailVerified, image)
         VALUES (:id, :name, :email, :emailVerified, :image)
         RETURNING *
         `,
-          args: userArg,
-        })
-        .then(transformToObjects)
-        .then(([res]) => res);
+        args: userArg,
+      });
 
       return userRes;
     },
     getUser: (id: string) => {
-      const user = turso
-        .execute({
-          sql: `
+      const user = query({
+        sql: `
         SELECT * FROM User 
         WHERE id = ? 
         LIMIT 1
         `,
-          args: [id],
-        })
-        .then(transformToObjects)
-        .then(([res]) => res);
+        args: [id],
+      });
 
       return user;
     },
     getUserByEmail: (email: string) => {
-      const user = turso
-        .execute({
-          sql: `
+      const user = query({
+        sql: `
         SELECT * FROM User
         WHERE email = ? 
         LIMIT 1
         `,
-          args: [email],
-        })
-        .then(transformToObjects)
-        .then(([res]) => res);
+        args: [email],
+      });
 
       return user;
     },
     getUserByAccount: (
       providerAccountId: Pick<AdapterAccount, "provider" | "providerAccountId">
     ) => {
-      const userByAccount = turso
-        .execute({
-          sql: `
+      const userByAccount = query({
+        sql: `
         SELECT User.id, name, email, emailVerified, image
         FROM Account 
         INNER JOIN User ON Account.userId = User.id
         WHERE provider = ? AND providerAccountId = ? 
         `,
-          args: [
-            providerAccountId.provider,
-            providerAccountId.providerAccountId,
-          ],
-        })
-        .then(transformToObjects)
-        .then(([res]) => res);
+        args: [providerAccountId.provider, providerAccountId.providerAccountId],
+      });
 
       return userByAccount;
     },
@@ -94,27 +86,23 @@ export function TursoAdapter(turso: Client): Adapter {
         user = transformDateToISO(user, "emailVerified");
       }
 
-      const updatedUser = turso
-        .execute({
-          sql: `
+      const updatedUser = query({
+        sql: `
         UPDATE User
         SET ${updateString}
         WHERE id = :id
         RETURNING *
         `,
-          args: user,
-        })
-        .then(transformToObjects)
-        .then(([res]) => res);
+        args: user,
+      });
 
       return updatedUser;
     },
     linkAccount: (account: AdapterAccount) => {
       const accountArg = { ...account, id: uuidv4() };
 
-      const linkedAccount = turso
-        .execute({
-          sql: `
+      const linkedAccount = query({
+        sql: `
         INSERT INTO Account
         (id, userId, type, 
          provider, providerAccountId, 
@@ -128,10 +116,8 @@ export function TursoAdapter(turso: Client): Adapter {
          :id_token, :session_state)
          RETURNING * 
         `,
-          args: accountArg,
-        })
-        .then(transformToObjects)
-        .then(([res]) => res);
+        args: accountArg,
+      });
 
       return linkedAccount;
     },
@@ -142,24 +128,20 @@ export function TursoAdapter(turso: Client): Adapter {
     }) => {
       const args = transformDateToISO({ ...session, id: uuidv4() }, "expires");
 
-      const sessionRes = turso
-        .execute({
-          sql: `
+      const sessionRes = query({
+        sql: `
         INSERT INTO Session (id, expires, sessionToken, userId)
         VALUES (:id, :expires, :sessionToken, :userId)
         RETURNING *
         `,
-          args,
-        })
-        .then(transformToObjects)
-        .then(([res]) => res);
+        args,
+      });
 
       return sessionRes;
     },
     getSessionAndUser: (sessionToken: string) => {
-      const sessionAndUser = turso
-        .execute({
-          sql: `
+      const sessionAndUser = query({
+        sql: `
         SELECT 
           Session.id as s_id, 
           expires, 
@@ -173,30 +155,28 @@ export function TursoAdapter(turso: Client): Adapter {
         INNER JOIN User ON Session.userId = User.id
         WHERE sessionToken = ?
         `,
-          args: [sessionToken],
-        })
-        .then(transformToObjects)
-        .then(([res]) => {
-          if (res == null) return null;
+        args: [sessionToken],
+      }).then((res) => {
+        if (res == null) return null;
 
-          const withExpiresDate = transformISOToDate(res, "expires");
+        const withExpiresDate = transformISOToDate(res, "expires");
 
-          const {
-            expires,
-            s_id,
-            sessionToken,
-            userId,
-            name,
-            email,
-            emailVerified,
-            image,
-          } = withExpiresDate;
+        const {
+          expires,
+          s_id,
+          sessionToken,
+          userId,
+          name,
+          email,
+          emailVerified,
+          image,
+        } = withExpiresDate;
 
-          const user = { id: userId, name, email, emailVerified, image };
-          const session = { expires, id: s_id, sessionToken, userId };
+        const user = { id: userId, name, email, emailVerified, image };
+        const session = { expires, id: s_id, sessionToken, userId };
 
-          return { user, session };
-        });
+        return { user, session };
+      });
 
       return sessionAndUser;
     },
@@ -211,104 +191,83 @@ export function TursoAdapter(turso: Client): Adapter {
         session = transformDateToISO(session, "expires");
       }
 
-      const updatedSession = turso
-        .execute({
-          sql: `
+      const updatedSession = query({
+        sql: `
         UPDATE Session 
         SET ${updateString}
         WHERE sessionToken = :sessionToken
         RETURNING *
         `,
-          args: session,
-        })
-        .then(transformToObjects)
-        .then(([res]) => {
-          if (res == null) return null;
+        args: session,
+      }).then((res) => {
+        if (res == null) return null;
 
-          return transformISOToDate(res, "expires");
-        });
+        return transformISOToDate(res, "expires");
+      });
 
       return updatedSession;
     },
     deleteSession: (sessionToken: string) => {
-      const deletedSession = turso
-        .execute({
-          sql: `
+      const deletedSession = query({
+        sql: `
         DELETE FROM Session 
         WHERE sessionToken = ? 
         RETURNING *
         `,
-          args: [sessionToken],
-        })
-        .then(transformToObjects)
-        .then((res) => res);
+        args: [sessionToken],
+      });
 
       return deletedSession;
     },
     createVerificationToken: (verificationToken: VerificationToken) => {
       const tokenArg = transformDateToISO(verificationToken, "expires");
 
-      const token = turso
-        .execute({
-          sql: `
+      const token = query({
+        sql: `
         INSERT INTO VerificationToken
         (identifier, token, expires)
         VALUES (?, ?, ?)
         `,
-          args: [tokenArg.identifier, tokenArg.token, tokenArg.expires],
-        })
-        .then(transformToObjects)
-        .then((res) => res);
+        args: [tokenArg.identifier, tokenArg.token, tokenArg.expires],
+      });
 
       return token;
     },
     useVerificationToken: (params: { identifier: string; token: string }) => {
-      const usedToken = turso
-        .execute({
-          sql: `
+      const usedToken = query({
+        sql: `
         DELETE FROM VerificationToken
         WHERE identifier = ? AND token = ? 
         RETURNING *
         `,
-          args: [params.identifier, params.token],
-        })
-        .then(transformToObjects)
-        .then(([res]) => res);
+        args: [params.identifier, params.token],
+      });
 
       return usedToken;
     },
     unlinkAccount: (
       providerAccountId: Pick<AdapterAccount, "provider" | "providerAccountId">
     ) => {
-      const unlinkedAccount = turso
-        .execute({
-          sql: `
+      const unlinkedAccount = query({
+        sql: `
         DELETE FROM Account
         WHERE provider = ? AND providerAccountId = ?
         RETURNING *
         `,
-          args: [
-            providerAccountId.provider,
-            providerAccountId.providerAccountId,
-          ],
-        })
-        .then(transformToObjects)
-        .then(([res]) => res);
+        args: [providerAccountId.provider, providerAccountId.providerAccountId],
+      });
 
       return unlinkedAccount;
     },
     deleteUser: (userId: string) => {
-      const deletedUser = turso
-        .execute({
-          sql: `
+      const deletedUser = query({
+        sql: `
         DELETE FROM User
         WHERE id = ?
         RETURNING *
         `,
-          args: [userId],
-        })
-        .then(transformToObjects)
-        .then(([res]) => res);
+        args: [userId],
+      });
 
       return deletedUser;
     },
