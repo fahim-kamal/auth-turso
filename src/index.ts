@@ -3,6 +3,7 @@ import type {
   AdapterAccount,
   AdapterSession,
   Adapter,
+  VerificationToken,
 } from "@auth/core/adapters";
 
 import type { Client } from "@libsql/client";
@@ -244,6 +245,28 @@ export function TursoAdapter(turso: Client): Adapter {
         .then((res) => res);
 
       return deletedSession;
+    },
+
+    createVerificationToken: (verificationToken: VerificationToken) => {
+      const tokenArg = transformDateToISO(verificationToken, "expires");
+
+      const token = turso
+        .execute({
+          sql: `
+        INSERT INTO VerificationToken
+        (identifier, token, expires)
+        VALUES (?, ?, ?)
+        `,
+          args: [tokenArg.identifier, tokenArg.token, tokenArg.expires],
+        })
+        .then(transformToObjects)
+        .then((res) => res);
+
+      return token;
+    },
+
+    useVerificationToken: (params: { identifier: string; token: string }) => {
+      return;
     },
   };
 }

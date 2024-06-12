@@ -86,7 +86,18 @@ const options: TestOptions = {
       return accountRes;
     },
     verificationToken: (params: { identifier: string; token: string }) => {
-      return;
+      const veriToken = tursoClient
+        .execute({
+          sql: `
+        SELECT * FROM VerificationToken 
+        WHERE identifier = ? AND token = ? 
+        `,
+          args: [params.identifier, params.token],
+        })
+        .then(transformToObjects)
+        .then(([res]) => res);
+
+      return veriToken;
     },
   },
   testWebAuthnMethods: false,

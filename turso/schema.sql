@@ -35,3 +35,9 @@ CREATE TABLE IF NOT EXISTS Account (
   FOREIGN KEY (userId) REFERENCES User (id)
     ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS VerificationToken (
+  token TEXT PRIMARY KEY, 
+  identifier TEXT, 
+  expires TEXT
+);
