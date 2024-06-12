@@ -1,0 +1,17 @@
+{
+  "name": "auth-turso",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest"
+  },
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@auth/core": "^0.32.0",
+    "@libsql/client": "^0.6.2",
+    "vitest": "^1.6.0"
+  }
+}
