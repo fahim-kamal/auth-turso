@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS User (
   image TEXT,
 
   unique(email)
-); 
+);
 
 CREATE TABLE IF NOT EXISTS Session (
   id TEXT PRIMARY KEY, 

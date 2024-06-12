@@ -96,7 +96,50 @@ export function TursoAdapter(turso: Client): Adapter {
 
       return sessionRes;
     },
-    getSessionAndUser: (sessionToken: string) => {},
+    getSessionAndUser: (sessionToken: string) => {
+      const sessionAndUser = turso
+        .execute({
+          sql: `
+        SELECT 
+          Session.id as s_id, 
+          expires, 
+          sessionToken,
+          userId, 
+          name,
+          email,
+          emailVerified, 
+          image
+        FROM Session
+        INNER JOIN User ON Session.userId = User.id
+        WHERE sessionToken = ?
+        `,
+          args: [sessionToken],
+        })
+        .then(transformToObjects)
+        .then(([res]) => {
+          if (res == null) return null;
+
+          const withExpiresDate = transformISOToDate(res, "expires");
+
+          const {
+            expires,
+            s_id,
+            sessionToken,
+            userId,
+            name,
+            email,
+            emailVerified,
+            image,
+          } = withExpiresDate;
+
+          const user = { id: userId, name, email, emailVerified, image };
+          const session = { expires, id: s_id, sessionToken, userId };
+
+          return { user, session };
+        });
+
+      return sessionAndUser;
+    },
     updateSession: (
       session: Partial<AdapterSession> & Pick<AdapterSession, "sessionToken">
     ) => {},
