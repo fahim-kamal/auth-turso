@@ -13,6 +13,7 @@ import {
   transformISOToDate,
   transformToObjects,
   transformDateToISO,
+  generateUpdatePlaceholders,
 } from "./utils.js";
 
 export function TursoAdapter(turso: Client): Adapter {
@@ -70,7 +71,23 @@ export function TursoAdapter(turso: Client): Adapter {
       return;
     },
     updateUser: (user: Partial<AdapterUser> & Pick<AdapterUser, "id">) => {
-      return;
+      // creates SQL placeholder string which depends on the properties supplied
+      const updateString = generateUpdatePlaceholders(user, ["id"]);
+
+      const updatedUser = turso
+        .execute({
+          sql: `
+        UPDATE User
+        SET ${updateString}
+        WHERE id = :id
+        RETURNING *
+        `,
+          args: user,
+        })
+        .then(transformToObjects)
+        .then(([res]) => res);
+
+      return updatedUser;
     },
     linkAccount: (account: AdapterAccount) => {
       return;

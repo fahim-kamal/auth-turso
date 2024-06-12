@@ -42,4 +42,25 @@ function transformISOToDate(result: any, key: string) {
   });
 }
 
-export { zip, transformDateToISO, transformToObjects, transformISOToDate };
+function generateUpdatePlaceholders(model: any, ignoreKeys: Array<string>) {
+  const keys = Object.keys(model);
+  const updateString = keys
+    .filter(
+      (key) =>
+        ignoreKeys.findIndex((val) => {
+          return val == key;
+        }) == -1
+    )
+    .map((key) => `${key} = :${key}`)
+    .join(",\n");
+
+  return updateString;
+}
+
+export {
+  zip,
+  transformDateToISO,
+  transformToObjects,
+  transformISOToDate,
+  generateUpdatePlaceholders,
+};
