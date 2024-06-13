@@ -23,7 +23,7 @@ $ turso db shell <your-database>
 
 <br>
 
-After adding the tables to your database, instantiate a turso client (with environment variables) for use by the next-auth route handler.
+After adding the tables to your database, instantiate a turso client (with appropriate environment variables) for use by the next-auth route handler.
 
 ```js
 import NextAuth from "next-auth";
@@ -40,3 +40,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: TursoAdapter(tursoClient),
 });
 ```
+
+### Tests
+
+This adapter passes all the required tests in the Auth.js test suite.
