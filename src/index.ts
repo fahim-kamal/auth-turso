@@ -29,7 +29,7 @@ export function TursoAdapter(turso: Client): Adapter {
     createUser: (user: AdapterUser) => {
       const userArg = transformDateToISO(user, "emailVerified");
 
-      const userRes = query({
+      const createdUser = query({
         sql: `
         INSERT INTO User (id, name, email, emailVerified, image)
         VALUES (:id, :name, :email, :emailVerified, :image)
@@ -38,7 +38,7 @@ export function TursoAdapter(turso: Client): Adapter {
         args: userArg,
       });
 
-      return userRes;
+      return createdUser;
     },
     getUser: (id: string) => {
       const user = query({
