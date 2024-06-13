@@ -4,8 +4,6 @@
 
 ### Setup
 
-<hr>
-
 Copy the src files into your project.
 
 - index.ts
