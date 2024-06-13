@@ -26,7 +26,7 @@ After adding the tables to your database, instantiate a turso client (with appro
 ```js
 import NextAuth from "next-auth";
 import { createClient } from "@libsql/client";
-import { TursoAdapter } from "@/lib/turso/index.js";
+import { TursoAdapter } from "@/lib/turso/index.ts";
 
 const tursoClient = createClient({
   url: process.env.TURSO_DATABASE_URL,
