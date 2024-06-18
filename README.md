@@ -12,6 +12,14 @@ Copy the src files into your project.
 
 <br>
 
+The only additional required module is uuid.
+
+```
+$ npm install uuid
+```
+
+<br>
+
 After copying files, you should update your Turso database to include the tables needed by Auth.js. This can be done by running the schema.sql file in the Turso CLI.
 
 ```shell
