@@ -15,6 +15,7 @@ import {
   transformToObjects,
   transformDateToISO,
   generateUpdatePlaceholders,
+  createPlaceholderString,
 } from "./utils.js";
 
 export function TursoAdapter(turso: Client): Adapter {
@@ -33,8 +34,8 @@ export function TursoAdapter(turso: Client): Adapter {
 
       const createdUser = query({
         sql: `
-        INSERT INTO User (id, name, email, emailVerified, image)
-        VALUES (:id, :name, :email, :emailVerified, :image)
+        INSERT INTO User 
+        ${createPlaceholderString(user)}
         RETURNING *
         `,
         args: user,
@@ -106,17 +107,8 @@ export function TursoAdapter(turso: Client): Adapter {
       const linkedAccount = query({
         sql: `
         INSERT INTO Account
-        (id, userId, type, 
-         provider, providerAccountId, 
-         refresh_token, access_token, 
-         expires_at, token_type, scope,
-         id_token, session_state)
-        VALUES (:id, :userId, :type, 
-         :provider, :providerAccountId, 
-         :refresh_token, :access_token, 
-         :expires_at, :token_type, :scope,
-         :id_token, :session_state)
-         RETURNING * 
+        ${createPlaceholderString(accountArg)} 
+        RETURNING * 
         `,
         args: accountArg,
       });
@@ -132,12 +124,12 @@ export function TursoAdapter(turso: Client): Adapter {
 
       const sessionRes = query({
         sql: `
-        INSERT INTO Session (id, expires, sessionToken, userId)
-        VALUES (:id, :expires, :sessionToken, :userId)
+        INSERT INTO Session 
+        ${createPlaceholderString(args)}
         RETURNING *
         `,
         args,
-      });
+      }).then((res) => transformISOToDate(res, "expires"));
 
       return sessionRes;
     },
@@ -227,10 +219,10 @@ export function TursoAdapter(turso: Client): Adapter {
       const token = query({
         sql: `
         INSERT INTO VerificationToken
-        (identifier, token, expires)
-        VALUES (?, ?, ?)
+        ${createPlaceholderString(tokenArg)}
+        RETURNING *
         `,
-        args: [tokenArg.identifier, tokenArg.token, tokenArg.expires],
+        args: tokenArg,
       });
 
       return token;

@@ -57,10 +57,21 @@ function generateUpdatePlaceholders(model: any, ignoreKeys: Array<string>) {
   return updateString;
 }
 
+function createPlaceholderString(record: object) {
+  const keys = Object.keys(record);
+
+  const columnNames = `(${keys.join(", ")})`;
+  const namedValues = keys.map((key) => ":" + key);
+  const namedValuesStatement = `(${namedValues.join(", ")})`;
+
+  return columnNames + " VALUES " + namedValuesStatement;
+}
+
 export {
   zip,
   transformDateToISO,
   transformToObjects,
   transformISOToDate,
   generateUpdatePlaceholders,
+  createPlaceholderString,
 };
